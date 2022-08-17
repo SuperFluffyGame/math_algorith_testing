@@ -1,89 +1,4 @@
-interface Token {
-    type: string;
-    value: any;
-}
-
-let token = (t: string, v: any) => {
-    return {
-        type: t,
-        value: v,
-    };
-};
-
-let tokenize = (str: string) => {
-    const toks: Token[] = [];
-
-    let tokIndex = 0;
-
-    let n = "";
-
-    const chars = str.split("");
-    for (let i = 0; i < chars.length; i++) {
-        const c = chars[i];
-
-        if (/[\d\.]/.test(c)) {
-            if (n == "number") {
-                toks[tokIndex].value += c;
-            } else if (n == "") {
-                n = "number";
-                toks[tokIndex] = token("number", c);
-            }
-        } else if (/\s/.test(c)) {
-            if (n == "number") {
-                n = "";
-                tokIndex++;
-            }
-        } else if (/[\+\-\*\/\^]/.test(c)) {
-            if (n == "number") {
-                n = "";
-                tokIndex++;
-            }
-            toks.push(token("operator", c));
-            tokIndex++;
-        } else if (/\(/.test(c)) {
-            toks.push({
-                type: "lparen",
-                value: "",
-            });
-            tokIndex++;
-        } else if (/\)/.test(c)) {
-            toks.push({
-                type: "rparen",
-                value: "",
-            });
-            tokIndex++;
-        }
-    }
-    let oToks: Token[] = [];
-
-    let parenDepth = 0;
-
-    let inParen: Token[] = [];
-
-    for (const t of toks) {
-        if (parenDepth === 0) {
-            if (t.type === "lparen") {
-                parenDepth++;
-            } else {
-                oToks.push(t);
-            }
-        } else {
-            if (t.type === "lparen") {
-                parenDepth++;
-            } else if (t.type === "rparen") {
-                parenDepth--;
-
-                if (parenDepth === 0) {
-                    oToks.push(token("paren", inParen));
-                    inParen = [];
-                }
-            } else {
-                inParen.push(t);
-            }
-        }
-    }
-    return oToks;
-};
+import { tokenize, Token, token } from "./lexer";
 
 const precedence = (op: string) => {
     switch (op) {
@@ -122,14 +37,43 @@ interface BinaryOp {
 }
 
 const parse = (tokens: Token[]): string | BinaryOp => {
+    let toks: any[] = [];
+    let parenDepth = 0;
+    let inParen: any[] = [];
+    for (const t of tokens) {
+        if (parenDepth === 0) {
+            if (t.type === "lparen") {
+                parenDepth++;
+            } else {
+                toks.push(t);
+            }
+        } else {
+            if (t.type === "lparen") {
+                parenDepth++;
+            } else if (t.type === "rparen") {
+                parenDepth--;
+
+                if (parenDepth === 0) {
+                    toks.push({
+                        type: "paren",
+                        value: inParen,
+                    });
+                    inParen = [];
+                }
+            } else {
+                inParen.push(t);
+            }
+        }
+    }
+
     let l: BinaryOp | string | null = null;
     let op: string | null = null;
     let r: BinaryOp | string | null = null;
 
     let side: "l" | "r" = "l";
 
-    for (let i = 0; i < tokens.length; i++) {
-        const t = tokens[i];
+    for (let i = 0; i < toks.length; i++) {
+        const t = toks[i];
 
         switch (t.type) {
             case "number": {
@@ -182,7 +126,8 @@ const parse = (tokens: Token[]): string | BinaryOp => {
 
                         if (
                             oldOpPrecedence > thisOpPrecedence ||
-                            thisOpAssociativity == "l"
+                            (oldOpPrecedence == thisOpPrecedence &&
+                                thisOpAssociativity === "l")
                         ) {
                             l = {
                                 op: op!,
@@ -194,9 +139,9 @@ const parse = (tokens: Token[]): string | BinaryOp => {
                             r = null;
                         } else {
                             let v =
-                                tokens[i + 1].type === "paren"
-                                    ? parse(tokens[i + 1].value)
-                                    : tokens[i + 1].value;
+                                toks[i + 1].type === "paren"
+                                    ? parse(toks[i + 1].value)
+                                    : toks[i + 1].value;
                             i++;
                             r = {
                                 op: t.value,
@@ -227,10 +172,14 @@ const evalExpr = (b: BinaryOp | string): number => {
         return parseFloat(b);
     }
 
+    // if lhs is null, it means its a unary operator.
+    // i cant believe how easy that is
     if (b.lhs == null) {
         switch (b.op) {
             case "-":
                 return -evalExpr(b.rhs);
+            case "+":
+                return +evalExpr(b.rhs);
         }
     }
 
@@ -264,7 +213,8 @@ const evalExpr = (b: BinaryOp | string): number => {
     }
 };
 
-let str = "-2^4";
+// was going good until this
+let str = "2 ^ 2 ^ 4";
 
 const t = tokenize(str);
 console.log(t);
