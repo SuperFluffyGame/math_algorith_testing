@@ -1,11 +1,11 @@
-let str = "1 + 2 * (3 - 4)";
+let str = "(4 - 3) * 2";
 
 interface Token {
     type: string;
-    value: string;
+    value: any;
 }
 
-let token = (t: string, v: string) => {
+let token = (t: string, v: any) => {
     return {
         type: t,
         value: v,
@@ -52,8 +52,35 @@ let tokenize = (str: string) => {
             tokIndex++;
         }
     }
+    let oToks: Token[] = [];
 
-    return toks;
+    let parenDepth = 0;
+
+    let inParen: Token[] = [];
+
+    for (const t of toks) {
+        if (parenDepth === 0) {
+            if (t.type === "lparen") {
+                parenDepth++;
+            } else {
+                oToks.push(t);
+            }
+        } else {
+            if (t.type === "lparen") {
+                parenDepth++;
+            } else if (t.type === "rparen") {
+                parenDepth--;
+
+                if (parenDepth === 0) {
+                    oToks.push(token("paren", inParen));
+                    inParen = [];
+                }
+            } else {
+                inParen.push(t);
+            }
+        }
+    }
+    return oToks;
 };
 
 const t = tokenize(str);
@@ -86,105 +113,80 @@ interface BinaryOp {
 }
 
 const parse = (tokens: Token[]): string | BinaryOp => {
-    const tree: object = {};
-
     let l: BinaryOp | string | null = null;
     let op: string | null = null;
     let r: BinaryOp | string | null = null;
 
     let side: "l" | "r" = "l";
 
-    let parenDepth = 0;
-    let inParen: Token[] = [];
-
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
-        console.log(t.type);
 
-        if (parenDepth === 0) {
-            switch (t.type) {
-                case "number": {
-                    switch (side) {
-                        case "l": {
-                            l = t.value;
-                            break;
-                        }
-                        case "r": {
-                            r = t.value;
-                            break;
-                        }
+        switch (t.type) {
+            case "number": {
+                switch (side) {
+                    case "l": {
+                        l = t.value;
+                        break;
                     }
-                    break;
-                }
-                case "operator": {
-                    switch (side) {
-                        case "l": {
-                            op = t.value;
-                            side = "r";
-                            break;
-                        }
-                        case "r": {
-                            let oldOpPrecedence = precedence(op!);
-                            let thisOpPrecedence = precedence(t.value);
-
-                            if (
-                                oldOpPrecedence > thisOpPrecedence ||
-                                tokens[i + 1] == null
-                            ) {
-                                l = {
-                                    op: op!,
-                                    lhs: l!,
-                                    rhs: r!,
-                                } as BinaryOp;
-
-                                op = t.value;
-                                r = null;
-                            } else {
-                                r = {
-                                    op: t.value,
-                                    lhs: r!,
-                                    rhs: tokens[++i].value,
-                                } as BinaryOp;
-                            }
-                        }
+                    case "r": {
+                        r = t.value;
+                        break;
                     }
-                    break;
                 }
-
-                case "lparen": {
-                    parenDepth++;
-
-                    break;
-                }
+                break;
             }
-        } else {
-            switch (t.type) {
-                case "lparen": {
-                    parenDepth++;
-                    break;
+            case "paren": {
+                switch (side) {
+                    case "l": {
+                        l = parse(t.value);
+                        break;
+                    }
+                    case "r": {
+                        r = parse(t.value);
+                        break;
+                    }
                 }
-                case "rparen": {
-                    parenDepth--;
-                    if (parenDepth === 0) {
-                        let v = parse(inParen);
+                break;
+            }
+            case "operator": {
+                switch (side) {
+                    case "l": {
+                        op = t.value;
+                        side = "r";
+                        break;
+                    }
+                    case "r": {
+                        let oldOpPrecedence = precedence(op!);
+                        let thisOpPrecedence = precedence(t.value);
 
-                        switch (side) {
-                            case "l": {
-                                l = v;
-                                break;
-                            }
-                            case "r": {
-                                r = v;
-                                break;
-                            }
+                        if (
+                            oldOpPrecedence > thisOpPrecedence ||
+                            tokens[i + 1] == null
+                        ) {
+                            l = {
+                                op: op!,
+                                lhs: l!,
+                                rhs: r!,
+                            } as BinaryOp;
+
+                            op = t.value;
+                            r = null;
+                        } else {
+                            let v =
+                                tokens[i + 1].type === "paren"
+                                    ? parse(tokens[i + 1].value)
+                                    : tokens[i + 1].value;
+                            i++;
+                            r = {
+                                op: t.value,
+                                lhs: r!,
+                                rhs: v,
+                            } as BinaryOp;
                         }
                     }
-                    break;
                 }
-                default: {
-                    inParen.push(t);
-                    break;
-                }
+                break;
             }
         }
     }
