@@ -33,7 +33,7 @@ let tokenize = (str: string) => {
                 n = "";
                 tokIndex++;
             }
-        } else if (/[\+\-\*\/]/.test(c)) {
+        } else if (/[\+\-\*\/\^]/.test(c)) {
             toks.push(token("operator", c));
             tokIndex++;
         } else if (/\(/.test(c)) {
@@ -95,8 +95,20 @@ const precedence = (op: string) => {
         case "/": {
             return 50;
         }
+        case "^": {
+            return 60;
+        }
     }
     return 0;
+};
+
+const associativity = (op: string) => {
+    switch (op) {
+        case "^": {
+            return "r";
+        }
+    }
+    return "l";
 };
 
 interface BinaryOp {
@@ -153,9 +165,15 @@ const parse = (tokens: Token[]): string | BinaryOp => {
                         let oldOpPrecedence = precedence(op!);
                         let thisOpPrecedence = precedence(t.value);
 
+                        let thisOpAssociativity = associativity(t.value);
+
+                        if (tokens[i + 1] == null) {
+                            throw "Invalid Right Hand Side";
+                        }
+
                         if (
                             oldOpPrecedence > thisOpPrecedence ||
-                            tokens[i + 1] == null
+                            thisOpAssociativity == "l"
                         ) {
                             l = {
                                 op: op!,
@@ -191,6 +209,7 @@ const parse = (tokens: Token[]): string | BinaryOp => {
             rhs: r!,
         } as BinaryOp;
     }
+
     return l!;
 };
 
@@ -221,13 +240,15 @@ const evalExpr = (b: BinaryOp | string): number => {
             return lhs * rhs;
         case "/":
             return lhs / rhs;
+        case "^":
+            return lhs ** rhs;
 
         default:
             return 0;
     }
 };
 
-let str = "(4 - 3) / 2.5";
+let str = "(1 - 2) ^ 3";
 
 const t = tokenize(str);
 

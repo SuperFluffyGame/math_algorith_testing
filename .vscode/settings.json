@@ -1,0 +1,5 @@
+{
+    "prettier.arrowParens": "avoid",
+    "prettier.semi": true,
+    "prettier.tabWidth": 4
+}
