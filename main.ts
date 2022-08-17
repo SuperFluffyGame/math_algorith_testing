@@ -227,7 +227,7 @@ const evalExpr = (b: BinaryOp | string): number => {
     }
 };
 
-let str = " (4 - 3) / 2.5";
+let str = "(4 - 3) / 2.5";
 
 const t = tokenize(str);
 
