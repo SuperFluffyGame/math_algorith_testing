@@ -1,5 +1,3 @@
-let str = "(4 - 3) * 2";
-
 interface Token {
     type: string;
     value: any;
@@ -82,11 +80,6 @@ let tokenize = (str: string) => {
     }
     return oToks;
 };
-
-const t = tokenize(str);
-console.log(t);
-
-/////////////
 
 const precedence = (op: string) => {
     switch (op) {
@@ -201,15 +194,7 @@ const parse = (tokens: Token[]): string | BinaryOp => {
     return l!;
 };
 
-console.time("PARSE");
-let p = parse(t);
-console.timeEnd("PARSE");
-
-console.log(JSON.stringify(p, null, 4));
-
-console.log(evalExpr(p));
-
-function evalExpr(b: BinaryOp | string): number {
+const evalExpr = (b: BinaryOp | string): number => {
     if (typeof b === "string") {
         return parseFloat(b);
     }
@@ -240,4 +225,16 @@ function evalExpr(b: BinaryOp | string): number {
         default:
             return 0;
     }
-}
+};
+
+let str = " (4 - 3) / 2.5";
+
+const t = tokenize(str);
+
+console.time("PARSE");
+const p = parse(t);
+console.timeEnd("PARSE");
+
+console.log(JSON.stringify(p, null, 4));
+
+console.log(evalExpr(p));
