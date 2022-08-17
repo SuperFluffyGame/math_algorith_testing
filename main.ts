@@ -34,6 +34,10 @@ let tokenize = (str: string) => {
                 tokIndex++;
             }
         } else if (/[\+\-\*\/\^]/.test(c)) {
+            if (n == "number") {
+                n = "";
+                tokIndex++;
+            }
             toks.push(token("operator", c));
             tokIndex++;
         } else if (/\(/.test(c)) {
@@ -167,9 +171,14 @@ const parse = (tokens: Token[]): string | BinaryOp => {
 
                         let thisOpAssociativity = associativity(t.value);
 
-                        if (tokens[i + 1] == null) {
-                            throw "Invalid Right Hand Side";
-                        }
+                        // if (tokens[i + 1] == null) {
+                        //     console.log({
+                        //         op,
+                        //         lhs: l,
+                        //         rhs: r,
+                        //     });
+                        //     throw "Invalid Right Hand Side";
+                        // }
 
                         if (
                             oldOpPrecedence > thisOpPrecedence ||
@@ -218,6 +227,13 @@ const evalExpr = (b: BinaryOp | string): number => {
         return parseFloat(b);
     }
 
+    if (b.lhs == null) {
+        switch (b.op) {
+            case "-":
+                return -evalExpr(b.rhs);
+        }
+    }
+
     let lhs: number;
     let rhs: number;
     if (typeof b.lhs === "object") {
@@ -248,9 +264,10 @@ const evalExpr = (b: BinaryOp | string): number => {
     }
 };
 
-let str = "(1 - 2) ^ 3";
+let str = "-2^4";
 
 const t = tokenize(str);
+console.log(t);
 
 console.time("PARSE");
 const p = parse(t);
