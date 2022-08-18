@@ -124,7 +124,10 @@ export const parse = (toks: Token[]) => {
                         (thisOpPrecedence == lastOpPrecedence &&
                             associativity(t.value) == "l")
                     ) {
-                        if (t.value.startsWith?.("u")) {
+                        if (
+                            t.value.startsWith?.("u") ||
+                            opStack[opStack.length - 1].startsWith("u")
+                        ) {
                             valStack.push({
                                 type: opStack.pop()!,
                                 value: valStack.pop()!,
@@ -147,6 +150,7 @@ export const parse = (toks: Token[]) => {
             lastToken = "op";
         } else if (t.type === "expr") {
             valStack.push(t.value);
+            lastToken = "val";
         }
     }
 
@@ -164,6 +168,5 @@ export const parse = (toks: Token[]) => {
             });
         }
     }
-    console.log(valStack);
     return valStack.pop();
 };

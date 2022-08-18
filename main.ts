@@ -175,9 +175,9 @@ const evalExpr = (b: any): number => {
     }
 
     if (b.type === "u-") {
-        return -b.value;
+        return -evalExpr(b.value);
     } else if (b.type === "u+") {
-        return +b.value;
+        return +evalExpr(b.value);
     }
 
     let lhs: number = evalExpr(b.lhs);
@@ -198,7 +198,7 @@ const evalExpr = (b: any): number => {
     return 0;
 };
 
-let str = "(2 ^ -3 + 5) * 1.5";
+let str = "-(2 ^ -3 + 5) * 1.5";
 
 const t = tokenize(str);
 
