@@ -198,10 +198,9 @@ const evalExpr = (b: any): number => {
     return 0;
 };
 
-let str = "2 ^ -3";
+let str = "(2 ^ -3 + 5) * 1.5";
 
 const t = tokenize(str);
-console.log(t);
 
 console.time("PARSE");
 const p = parse(t);

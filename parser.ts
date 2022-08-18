@@ -164,6 +164,6 @@ export const parse = (toks: Token[]) => {
             });
         }
     }
-
+    console.log(valStack);
     return valStack.pop();
 };
