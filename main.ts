@@ -67,9 +67,14 @@ const parse = (tokens: Token[]): string | BinaryOp => {
     }
 
     let l: BinaryOp | string | null = null;
+    // change op to an op queue
     let op: string | null = null;
     let r: BinaryOp | string | null = null;
 
+    // ??? maybe???
+    // let unaryOp: string | null = null
+
+    // remove this, just check if l is null
     let side: "l" | "r" = "l";
 
     for (let i = 0; i < toks.length; i++) {
@@ -115,15 +120,6 @@ const parse = (tokens: Token[]): string | BinaryOp => {
 
                         let thisOpAssociativity = associativity(t.value);
 
-                        // if (tokens[i + 1] == null) {
-                        //     console.log({
-                        //         op,
-                        //         lhs: l,
-                        //         rhs: r,
-                        //     });
-                        //     throw "Invalid Right Hand Side";
-                        // }
-
                         if (
                             oldOpPrecedence > thisOpPrecedence ||
                             (oldOpPrecedence == thisOpPrecedence &&
@@ -139,7 +135,7 @@ const parse = (tokens: Token[]): string | BinaryOp => {
                             r = null;
                         } else {
                             let v =
-                                toks[i + 1].type === "paren"
+                                toks[i + 1].type === "expr"
                                     ? parse(toks[i + 1].value)
                                     : toks[i + 1].value;
                             i++;
@@ -213,8 +209,12 @@ const evalExpr = (b: BinaryOp | string): number => {
     }
 };
 
-// was going good until this
-let str = "2 ^ 2 ^ 4";
+let str = "-2 ^ 2 * 4";
+// should be
+// (-(2 ^ 2)) ^ 4
+// or
+// -(2 ^ 2 ^ 4)
+// ?
 
 const t = tokenize(str);
 console.log(t);

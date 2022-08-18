@@ -1,4 +1,4 @@
-import { Token } from "./lexer";
+import { Token, token } from "./lexer";
 
 export type UnaryOp = "neg" | "plus";
 export interface UnaryExpr {
@@ -12,7 +12,7 @@ export interface BinaryExpr {
     value: Expr;
 }
 
-export const precedence = (o: BinaryOp | UnaryOp) => {
+export const precedence = (o: BinaryOp | UnaryOp): number => {
     switch (o) {
         case "add":
         case "sub":
@@ -25,9 +25,6 @@ export const precedence = (o: BinaryOp | UnaryOp) => {
             return 55;
         case "exp":
             return 60;
-
-        default:
-            return 0;
     }
 };
 
@@ -50,9 +47,41 @@ export interface ParserResult {
 export const parse = (toks: Token[]): ParserResult => {
     // Parse Parenthesis
     const tokens: Token[] = [];
+    let lastParenIndex = 0;
     let parenDepth = 0;
     let inParen: Token[] = [];
+
     for (let i = 0; i < toks.length; i++) {
-        
+        const t = toks[i];
+
+        switch (t.type) {
+            case "lparen": {
+                parenDepth++;
+                lastParenIndex = t.index;
+            }
+            case "rparen": {
+                parenDepth--;
+
+                tokens.push(token("expr", inParen, lastParenIndex));
+            }
+            default: {
+                if (parenDepth == 0) {
+                    tokens.push(t);
+                } else {
+                    inParen.push(t);
+                }
+            }
+        }
     }
+    if (parenDepth != 0) {
+        return {
+            error: `Unmatched Parenthesis at index ${lastParenIndex}`,
+            value: "",
+        };
+    }
+
+    return {
+        error: "",
+        value: "",
+    };
 };

@@ -1,13 +1,15 @@
-type TokenType = "number" | "operator" | "lparen" | "rparen" | "paren";
+type TokenType = "number" | "operator" | "lparen" | "rparen" | "expr";
 
 export interface Token {
     type: TokenType;
     value: any;
+    index: number;
 }
-export const token = (t: TokenType, v: any): Token => {
+export const token = (t: TokenType, v: any, start: number): Token => {
     return {
         type: t,
         value: v,
+        index: start,
     };
 };
 
@@ -27,7 +29,7 @@ export const tokenize = (s: string): Token[] => {
                 toks[tokIndex].value += c;
             } else if (n == "") {
                 n = "number";
-                toks[tokIndex] = token("number", c);
+                toks[tokIndex] = token("number", c, i);
             }
         } else if (/\s/.test(c)) {
             if (n == "number") {
@@ -39,19 +41,13 @@ export const tokenize = (s: string): Token[] => {
                 n = "";
                 tokIndex++;
             }
-            toks.push(token("operator", c));
+            toks.push(token("operator", c, i));
             tokIndex++;
         } else if (/\(/.test(c)) {
-            toks.push({
-                type: "lparen",
-                value: "",
-            });
+            toks.push(token("lparen", "(", i));
             tokIndex++;
         } else if (/\)/.test(c)) {
-            toks.push({
-                type: "rparen",
-                value: "",
-            });
+            toks.push(token("rparen", ")", i));
             tokIndex++;
         }
     }
