@@ -54,3 +54,7 @@ export const tokenize = (s: string): Token[] => {
 
     return toks;
 };
+
+class Tokenizer {
+    constructor(private str: string) {}
+}

@@ -1,4 +1,4 @@
-import { Token, token } from "./lexer";
+import { Token, token, tokenize } from "./lexer";
 
 export type UnaryOp = "neg" | "plus";
 export interface UnaryExpr {
@@ -9,22 +9,27 @@ export interface UnaryExpr {
 export type BinaryOp = "add" | "sub" | "mul" | "div" | "exp";
 export interface BinaryExpr {
     type: BinaryOp;
-    value: Expr;
+    lhs: Expr;
+    rhs: Expr;
 }
 
-export const precedence = (o: BinaryOp | UnaryOp): number => {
+export type Op = UnaryOp | BinaryOp;
+
+export const precedence = (o: string): number => {
     switch (o) {
-        case "add":
-        case "sub":
+        case "+":
+        case "-":
             return 40;
-        case "mul":
-        case "div":
+        case "*":
+        case "/":
             return 50;
-        case "neg":
-        case "plus":
+        case "u-":
+        case "u+":
             return 55;
-        case "exp":
+        case "^":
             return 60;
+        default:
+            return 0;
     }
 };
 
@@ -37,6 +42,19 @@ export const associativity = (o: BinaryOp): "l" | "r" => {
     }
 };
 
+export const isUnary = (o: string): boolean => {
+    switch (o) {
+        case "+":
+            return true;
+
+        case "-":
+            return true;
+
+        default:
+            return false;
+    }
+};
+
 export type Expr = BinaryExpr | UnaryExpr | number | string;
 
 export interface ParserResult {
@@ -44,7 +62,7 @@ export interface ParserResult {
     value: Expr | null;
 }
 
-export const parse = (toks: Token[]): ParserResult => {
+export const parse = (toks: Token[]) => {
     // Parse Parenthesis
     const tokens: Token[] = [];
     let lastParenIndex = 0;
@@ -58,11 +76,13 @@ export const parse = (toks: Token[]): ParserResult => {
             case "lparen": {
                 parenDepth++;
                 lastParenIndex = t.index;
+                break;
             }
             case "rparen": {
                 parenDepth--;
 
-                tokens.push(token("expr", inParen, lastParenIndex));
+                tokens.push(token("expr", parse(inParen), lastParenIndex));
+                break;
             }
             default: {
                 if (parenDepth == 0) {
@@ -80,8 +100,70 @@ export const parse = (toks: Token[]): ParserResult => {
         };
     }
 
-    return {
-        error: "",
-        value: "",
-    };
+    let opStack: any[] = [];
+    let valStack: Expr[] = [];
+
+    let lastToken: "op" | "val" | null = null;
+
+    for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i];
+
+        if (t.type === "number") {
+            valStack.push(t.value);
+            lastToken = "val";
+        } else if (t.type === "operator") {
+            if (lastToken === "val") {
+                while (opStack.length !== 0) {
+                    let thisOpPrecedence = precedence(t.value);
+                    let lastOpPrecedence = precedence(
+                        opStack[opStack.length - 1]
+                    );
+
+                    if (
+                        thisOpPrecedence < lastOpPrecedence ||
+                        (thisOpPrecedence == lastOpPrecedence &&
+                            associativity(t.value) == "l")
+                    ) {
+                        if (t.value.startsWith?.("u")) {
+                            valStack.push({
+                                type: opStack.pop()!,
+                                value: valStack.pop()!,
+                            });
+                        } else {
+                            valStack.push({
+                                type: opStack.pop()!,
+                                rhs: valStack.pop()!,
+                                lhs: valStack.pop()!,
+                            });
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                opStack.push(t.value);
+            } else if (isUnary(t.value)) {
+                opStack.push("u" + t.value);
+            }
+            lastToken = "op";
+        } else if (t.type === "expr") {
+            valStack.push(t.value);
+        }
+    }
+
+    while (opStack.length !== 0) {
+        if (opStack[opStack.length - 1].startsWith?.("u")) {
+            valStack.push({
+                type: opStack.pop()!,
+                value: valStack.pop()!,
+            });
+        } else {
+            valStack.push({
+                type: opStack.pop()!,
+                rhs: valStack.pop()!,
+                lhs: valStack.pop()!,
+            });
+        }
+    }
+
+    return valStack.pop();
 };
